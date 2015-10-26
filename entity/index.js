@@ -176,21 +176,28 @@ EntityGenerator.prototype.files = function files() {
   this.generatorConfig.entities = this.entities;
   this.generatorConfigStr = JSON.stringify(this.generatorConfig, null, '\t');
 
-  var appDir = _s.capitalize(this.baseName) + '/'
-  var publicDir = appDir + 'Content/'
+
   this.template('_generator.json', 'generator.json');
-  this.template('../../app/templates/_App/_Main.fs', appDir + 'Main.fs');
+  
+
+  var appDirA = 'src/' + _s.capitalize(this.baseName) + '.F/';
+  this.template('../../app/templates/src/_App.F/_Main.fs', appDirA + 'Main.fs');
+  this.template('../../app/templates/src/_App.F/_Domain.fs', appDirA + 'Domain.fs');
+
+
+  var appDir = 'src/' + _s.capitalize(this.baseName) + '/';
+  var publicDir = appDir + 'Content/'
 
   var publicCssDir = publicDir + 'css/';
-  var publicJsDir = publicDir + 'js/';
+  var publicJsDir = publicDir + 'app/';
   var publicViewDir = publicDir + 'views/';
   var publicEntityJsDir = publicJsDir + this.name + '/';
   var publicEntityViewDir = publicViewDir + this.name + '/';
   this.mkdir(publicEntityJsDir);
   this.mkdir(publicEntityViewDir);
-  this.template('../../app/templates/public/_index.html', publicDir + 'index.html');
-  this.template('public/js/entity/_entity-controller.js', publicEntityJsDir + this.name + '-controller.js');
-  this.template('public/js/entity/_entity-router.js', publicEntityJsDir + this.name + '-router.js');
-  this.template('public/js/entity/_entity-service.js', publicEntityJsDir + this.name + '-service.js');
-  this.template('public/views/entity/_entities.html', publicEntityViewDir + pluralize(this.name) + '.html');
+  this.template('../../app/templates/src/_App/Content/_index.html', publicDir + 'index.html');
+  this.template('Content/app/entity/_entity-controller.js', publicEntityJsDir + this.name + '-controller.js');
+  this.template('Content/app/entity/_entity-router.js', publicEntityJsDir + this.name + '-router.js');
+  this.template('Content/app/entity/_entity-service.js', publicEntityJsDir + this.name + '-service.js');
+  this.template('Content/views/entity/_entities.html', publicEntityViewDir + pluralize(this.name) + '.html');
 };

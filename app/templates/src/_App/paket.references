@@ -1,11 +1,10 @@
-Elasticsearch.Net
 EntityFramework
 FSharp.Core
 FsPickler
-NEST
 Newtonsoft.Json
 ServiceStack.Common
 ServiceStack.Interfaces
 ServiceStack.Text
 Suave
 System.Data.SQLite.Core
+dapper

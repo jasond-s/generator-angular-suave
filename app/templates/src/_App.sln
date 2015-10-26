@@ -8,9 +8,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{12024E
 		paket.dependencies = paket.dependencies
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "<%= _.capitalize(baseName) %>", "<%= _.capitalize(baseName) %>\<%= _.capitalize(baseName) %>.fsproj", "{ACF7B6A6-76D1-46C8-AC58-CE04AD208E9F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "<%= _.capitalize(baseName) %>", "<%= _.capitalize(baseName) %>\<%= _.capitalize(baseName) %>.fsproj", "{EEAB9FA8-4B04-4682-A494-3133FF7105EF}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "<%= _.capitalize(baseName) %>.F", "<%= _.capitalize(baseName) %>.F\<%= _.capitalize(baseName) %>.F.fsproj", "{614B5DCC-CAB6-4667-A2FE-D9A7B65D7945}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "<%= _.capitalize(baseName) %>.F", "<%= _.capitalize(baseName) %>.F\<%= _.capitalize(baseName) %>.F.fsproj", "{7631233A-BF07-4A1F-BC99-A2522EDE9AA0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

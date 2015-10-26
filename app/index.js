@@ -73,49 +73,76 @@ AngularSuaveGenerator.prototype.app = function app() {
   this.template('bowerrc', '.bowerrc');
   this.copy('gitignore', '.gitignore');
 
-  var appDir = 'src/' + _s.capitalize(this.baseName) + '/'
-  var appDirApp = 'src/' + _s.capitalize(this.baseName) + '.F/'
-  var x64Dir = appDir + 'x64/'
-  var x86Dir = appDir + 'x86/'
-  var publicDir = appDir + 'Content/'
+  var appDir = 'src/' + _s.capitalize(this.baseName) + '/';
+  var x64Dir = appDir + 'x64/';
+  var x86Dir = appDir + 'x86/';
+  var publicDir = appDir + 'Content/';
 
+  var appDirApp = 'src/' + _s.capitalize(this.baseName) + '.F/';
+  var x64DirApp = appDirApp + 'x64/';
+  var x86DirApp = appDirApp + 'x86/';
+
+  var appDirB = 'src/_App/';
+  var x64DirB = appDirB + 'x64/';
+  var x86DirB = appDirB + 'x86/';
+  var publicDirB = appDirB + 'Content/';
+
+  var appDirAppB = 'src/_App.F/';
+  var x64DirAppB = appDirAppB + 'x64/';
+  var x86DirAppB = appDirAppB + 'x86/';
+
+
+  this.mkdir(appDir);
   this.mkdir(x64Dir);
   this.mkdir(x86Dir);
-  this.mkdir(appDir);
   this.mkdir(publicDir);
 
-  this.template('_App.sln', _s.capitalize(this.baseName) + '.sln');
+  this.mkdir(appDirApp);
+  this.mkdir(x64DirApp);
+  this.mkdir(x86DirApp);
+
+  this.copy('src/.paket/paket.targets', 'src/.paket/paket.targets');
+  this.copy('src/.paket/paket.exe', 'src/.paket/paket.exe');
+  this.copy('src/.paket/paket.bootstrapper.exe', 'src/.paket/paket.bootstrapper.exe');
+
+  this.template('src/_App.sln', 'src/' + _s.capitalize(this.baseName) + '.sln');
+  this.copy('src/paket.dependencies', 'src/paket.dependencies');
+  this.copy('src/paket.lock', 'src/paket.lock');
 
 
   // WEB PROJECT
 
-  this.copy('src/_App/App.config', appDir + 'App.config');
-  this.copy('src/_App/_packages.config', appDir + 'packages.config');
-  this.template('src/_App/src/_App.fsproj', appDir + _s.capitalize(this.baseName) + '.fsproj');
-  this.template('src/_App/_Main.fs', appDir + 'Main.fs');
+  this.copy(appDirB + 'App.config', appDir + 'App.config');
+  this.copy(appDirB + 'paket.references', appDir + 'paket.references');
+  this.template(appDirB + '_App.fsproj', appDir + _s.capitalize(this.baseName) + '.fsproj');
+  this.template(appDirB + '_Main.fs', appDir + 'Main.fs');
 
   var publicCssDir = publicDir + 'css/';
   var publicJsDir = publicDir + 'app/';
   var publicViewDir = publicDir + 'views/';
+  var publicCssDirB = publicDirB + 'css/';
+  var publicJsDirB = publicDirB + 'app/';
+  var publicViewDirB = publicDirB + 'views/';
   this.mkdir(publicCssDir);
   this.mkdir(publicJsDir);
   this.mkdir(publicViewDir);
-  this.template('src/_App/Content/_index.html', publicDir + 'index.html');
-  this.copy('src/_App/Content/css/app.css', publicCssDir + 'app.css');
-  this.template('src/_App/Content/app/src/_App.js', publicJsDir + 'app.js');
-  this.template('src/_App/Content/app/home/_home-controller.js', publicJsDir + 'home/home-controller.js');
-  this.template('src/_App/Content/views/home/_home.html', publicViewDir + 'home/home.html');
+
+  this.template(publicDirB +'_index.html', publicDir + 'index.html');
+  this.copy(publicCssDirB + 'app.css', publicCssDir + 'app.css');
+  this.template(publicJsDirB + '_App.js', publicJsDir + 'app.js');
+  this.template(publicJsDirB + '/home/_home-controller.js', publicJsDir + 'home/home-controller.js');
+  this.template(publicViewDirB + '/home/_home.html', publicViewDir + 'home/home.html');
 
 
   // FSHARP PROJECT TEMPLATE
 
-  this.copy('src/_App.F/x64/SQLite.Interop.dll', x64Dir + 'SQLite.Interop.dll');
-  this.copy('src/_App.F/x86/SQLite.Interop.dll', x86Dir + 'SQLite.Interop.dll');
-  this.copy('src/_App.F/App.config', appDir + 'App.config');
-  this.copy('src/_App.F/_packages.config', appDir + 'packages.config');
-  this.template('src/_App.F/src/_App.F.fsproj', appDir + _s.capitalize(this.baseName) + '.fsproj');
-  this.template('src/_App.F/_Main.fs', appDir + 'Main.fs');
-  this.template('src/_App.F/_Domain.fs', appDir + 'Domain.fs');
+  this.copy(x64DirAppB + 'SQLite.Interop.dll', x64DirApp + 'SQLite.Interop.dll');
+  this.copy(x64DirAppB + 'SQLite.Interop.dll', x86DirApp + 'SQLite.Interop.dll');
+  this.copy(appDirAppB + 'App.config', appDirApp + 'App.config');
+  this.copy(appDirAppB + 'paket.references', appDirApp + 'paket.references');
+  this.template(appDirAppB + '_App.F.fsproj', appDirApp + _s.capitalize(this.baseName) + '.F.fsproj');
+  this.template(appDirAppB + '_Main.fs', appDirApp + 'Main.fs');
+  this.template(appDirAppB + '_Domain.fs', appDirApp + 'Domain.fs');
 };
 
 AngularSuaveGenerator.prototype.projectfiles = function projectfiles() {

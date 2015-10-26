@@ -4,37 +4,34 @@ module App =
 
   open System
   open System.Net
+  open System.IO
+  open System.Text
+  open System.Data
+  open System.Data.SQLite
 
   open Suave
-  open Suave.Web
   open Suave.Http
   open Suave.Http.Applicatives
   open Suave.Http.Files
   open Suave.Http.Successful
+  open Suave.Web
+  open Suave.Logging
   open Suave.Types
-  open Suave.Session
-  open Suave.Log
-  open System.IO
-  open System.Text
 
-  open System.Data
-  open ServiceStack.DataAnnotations
-  open ServiceStack.OrmLite
-  open ServiceStack.OrmLite.Sqlite
+  open Dapper
 
   open Newtonsoft.Json
   open Newtonsoft.Json.Converters
 
   open <%= baseName %>.F.Domain
 
+  
+  let logger = Loggers.saneDefaultsFor LogLevel.Debug
 
-  let logger = Loggers.sane_defaults_for Debug
-
-  let dbFactory =
-    let dbConnectionFactory = new OrmLiteConnectionFactory("my.db", SqliteDialect.Provider)
-    use db = dbConnectionFactory.OpenDbConnection()<% _.each(entities, function (entity) { %>
-    db.CreateTable<<%= _.capitalize(entity.name) %>>(false)<% }); %>
-    dbConnectionFactory
+  let dbFactory () =
+    let dbConnectionFactory = new SQLiteConnection ("my.db")
+    dbConnectionFactory.Open ()
+    dbConnectionFactory :> IDbConnection
 
 
   type CustomDateTimeConverter() =
@@ -44,71 +41,22 @@ module App =
 
   let converters : JsonConverter[] = [| CustomDateTimeConverter() |]
 
+  
+  // JSON helpers
 
+  let toBytes (s: string) = s |> Encoding.UTF8.GetBytes
 
-  /// Convert the object to a JSON representation inside a byte array (can be made string of)
-  let to_json<'a> (o: 'a) =
-    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o, converters))
+  let toJson<'a> (o : 'a) = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o, converters))
 
-  /// Transform the byte array representing a JSON object to a .Net object
-  let from_json<'a> (bytes:byte []) =
-    JsonConvert.DeserializeObject<'a>(Encoding.UTF8.GetString(bytes), converters)
+  let fromJson<'a> (bytes : byte []) = JsonConvert.DeserializeObject<'a>(Encoding.UTF8.GetString(bytes), converters)
 
-
-  /// Expose function f through a json call; lets you write like
-  ///
-  /// let app =
-  ///   url "/path" >>= request (map_json some_function);
-  ///
-  let map_json f (r : Suave.Types.HttpRequest) =
-    f (from_json(r.raw_form)) |> to_json |> Successful.ok
-
-
-
-  <% _.each(entities, function (entity) { %>
-  let <%= entity.name %>Part : WebPart =
-    choose [
-      GET >>= url "/<%= baseName %>/<%= pluralize(entity.name) %>" >>= request(
-        (fun _ -> 
-          use db = dbFactory.OpenDbConnection()
-          let rows = db.Select<<%= _.capitalize(entity.name) %>>()
-          to_json rows |> Successful.ok));
-
-      GET >>= url_scan "/<%= baseName %>/<%= pluralize(entity.name) %>/%d"
-        (fun id -> 
-          use db = dbFactory.OpenDbConnection()
-          let row = db.Single<<%= _.capitalize(entity.name) %>>(fun r -> r.Id = id)
-          to_json row |> Successful.ok);
-
-      POST >>= url "/<%= baseName %>/<%= pluralize(entity.name) %>" >>= request(map_json 
-        (fun (row : <%= _.capitalize(entity.name) %>) -> 
-          use db = dbFactory.OpenDbConnection()
-          let num = db.Insert(row)
-          row.Id <- int(db.LastInsertId())
-          row));
-
-      PUT >>= url_scan "/<%= baseName %>/<%= pluralize(entity.name) %>/%d"
-        (fun id -> request(map_json (fun (row : <%= _.capitalize(entity.name) %>) -> 
-          row.Id <- id
-          use db = dbFactory.OpenDbConnection()
-          let old = db.Single<<%= _.capitalize(entity.name) %>>(fun r -> r.Id = id)
-          let num = db.Update(row)
-          row)));
-
-      DELETE >>= url_scan "/<%= baseName %>/<%= pluralize(entity.name) %>/%d"
-        (fun id -> 
-          use db = dbFactory.OpenDbConnection()
-          let num = db.Delete<<%= _.capitalize(entity.name) %>>(fun r -> r.Id = id)
-          Successful.no_content);
-    ]<% }); %>
-
-
+  let mapJson f (r : HttpRequest) = f (fromJson (r.rawForm)) |> toJson |> Successful.ok
 
   let localIpAddress : IPAddress = IPAddress.Loopback
 
   let localPort : Sockets.Port = Sockets.Port.Parse "8080"
 
-  let mimeTypes =     
+  let mimeTypes = 
       Writers.defaultMimeTypesMap
       >=> (function 
           | ".woff" -> Writers.mkMimeType "application/font-woff" false
@@ -118,23 +66,61 @@ module App =
           | ".otf"  -> Writers.mkMimeType "application/font-otf" false
           | ".svg"  -> Writers.mkMimeType "image/svg+xml" false
           | _ -> None)
-          
+
+
+
+  <% _.each(entities, function (entity) { %>
+  let <%= entity.name %>Part : WebPart =
+    choose [
+      GET >>= path "/<%= baseName %>/<%= pluralize(entity.name) %>" >>= request(
+        (fun _ -> 
+          use db = dbFactory ()
+          let rows = db.Query<<%= _.capitalize(entity.name) %>>("select * from <%= _.capitalize(entity.name) %>")
+          toJson rows |> Successful.ok));
+
+      GET >>= pathScan "/<%= baseName %>/<%= pluralize(entity.name) %>/%d"
+        (fun id -> 
+          use db = dbFactory ()
+          let row = db.Query<<%= _.capitalize(entity.name) %>>("select * from <%= _.capitalize(entity.name) %> where id == @id", new { id = id })
+          toJson row |> Successful.ok);
+
+      POST >>= path "/<%= baseName %>/<%= pluralize(entity.name) %>" >>= request(map_json 
+        (fun (row : <%= _.capitalize(entity.name) %>) -> 
+          use db = dbFactory ()
+          let num = db.Query<int>("insert into <%= _.capitalize(entity.name) %> values (%value); last_insert_rowid()", new { value = <%= _.capitalize(entity.name) %>}) |> Seq.head
+          row.Id <- num
+          row));
+
+      PUT >>= pathScan "/<%= baseName %>/<%= pluralize(entity.name) %>/%d"
+        (fun id -> request(map_json (fun (row : <%= _.capitalize(entity.name) %>) -> 
+          row.Id <- id
+          use db = dbFactory ()
+          let old = db.Query<<%= _.capitalize(entity.name) %>>("select * from <%= _.capitalize(entity.name) %> where id == @id", new { id = id }) |> Seq.head
+          let num = db.Query("update <%= _.capitalize(entity.name) %> set @value where id = @id", new { value = <%= _.capitalize(entity.name) %>, id = <%= _.capitalize(entity.name) %>.id})
+          row)));
+
+      DELETE >>= pathScan "/<%= baseName %>/<%= pluralize(entity.name) %>/%d"
+        (fun id -> 
+          use db = dbFactory ()
+          let num = db.Query<<%= _.capitalize(entity.name) %>>("delete from <%= _.capitalize(entity.name) %> where id = @id", new { id = id })
+          Successful.no_content);
+    ]<% }); %>          
 
 
 
   // WEB SERVER
 
   let config = { 
-      bindings            = [ HttpBinding.mk HTTP localIpAddress localPort ]
-      serverKey           = toBytes "vC8hd46jydisFLu3oAhD9MprhMTXQQ2WQsbGA5MW"
-      errorHandler        = defaultErrorHandler
-      listenTimeout       = TimeSpan.FromMilliseconds 2000.
-      cancellationToken   = Async.DefaultCancellationToken
-      bufferSize          = 2048
-      maxOps              = 100
-      mimeTypesMap        = mimeTypes
-      homeFolder          = Some(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Content"))
-      logger              = logger 
+      bindings              = [ HttpBinding.mk HTTP localIpAddress localPort ]
+      serverKey             = toBytes "vC8hd46jydisFLu3oAhD9MprhMTXQQ2WQsbGA5MW"
+      errorHandler          = defaultErrorHandler
+      listenTimeout         = TimeSpan.FromMilliseconds 2000.
+      cancellationToken     = Async.DefaultCancellationToken
+      bufferSize            = 2048
+      maxOps                = 100
+      mimeTypesMap          = mimeTypes
+      homeFolder            = Some(Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Content"))
+      logger                = logger 
       compressedFilesFolder = None
       }
       
